@@ -1,13 +1,11 @@
 import streamlit as st
-from pathlib import Path
 import json
-from transformers import BertJapaneseTokenizer, BertForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from huggingface_hub import hf_hub_download
 import torch
 import pandas as pd
-# import matplotlib.pyplot as plt
 import plotly.express as px
 import torch.nn.functional as F
-import time
 
 
 # ---ログ非表示用---
@@ -16,7 +14,7 @@ logging.set_verbosity_error()
 
 
 # ---定数---
-MODEL_DIR = Path("./model")
+MODEL_NAME = "yuseyuse14/bert-japanese-genre-classifier"
 
 
 # ---変数（保持）---
@@ -27,14 +25,21 @@ if "probs" not in st.session_state:
 # ---関数---
 @st.cache_resource
 def load_data(dir):
-    with open(dir / "word.json", "r", encoding="utf-8") as f:
-        word_list = json.load(f)
-    return word_list
+    # HuggingFaceから省略語データを取得
+    file_path = hf_hub_download(
+        repo_id=dir,
+        filename="abbreviation.json",
+        token=True
+    )
+    with open(file_path, "r", encoding="utf-8") as f:
+        abbr_list = json.load(f)
+    return abbr_list
 
 @st.cache_resource
 def load_model(dir):
-    tokenizer = BertJapaneseTokenizer.from_pretrained(dir)
-    model = BertForSequenceClassification.from_pretrained(dir)
+    # HuggingFaceからモデルを取得
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
     model.eval()
     return tokenizer, model
 
@@ -84,8 +89,8 @@ def temp_soft(x, temp=1.0):
 
 def main():
     # データ読み込み
-    words = load_data(dir=MODEL_DIR)
-    tokenizer, model = load_model(dir=MODEL_DIR)
+    abbr = load_data(dir=MODEL_NAME)
+    tokenizer, model = load_model(dir=MODEL_NAME)
 
     # UI
     st.title("B3 研究室見学")
