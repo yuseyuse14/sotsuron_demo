@@ -43,7 +43,6 @@ requests==2.33.1
 rich==15.0.0
 rpds-py==0.30.0
 safetensors==0.7.0
-setuptools==81.0.0
 shellingham==1.5.4
 six==1.17.0
 smmap==5.0.3
