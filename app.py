@@ -104,19 +104,22 @@ def js_divergence(P, Q, eps=1e-12):
     return 0.5 * (kl_pm + kl_qm)
 
 def read_estimate(text, probs, abbr):
-    filtered = abbr[abbr["word"].apply(lambda x: word_in_text(x, text))]
-    if filtered.empty:
+    words_in_text = [word for word in abbr["word"].unique() if word_in_text(word, text)]
+    if not words_in_text:
         return text
-    else:
+    result_text = text
+    # 省略語ごとに処理
+    for target_word in words_in_text:
+        filtered = abbr[abbr["word"] == target_word].copy()
         scores = list()
         for _, row in filtered.iterrows():
             js = js_divergence(temp_soft(probs, 2.5), np.array(temp_soft(row["score"], 0.25)))
             scores.append(-js)
         filtered["js"] = scores
         max_row = filtered.loc[filtered["js"].idxmax()]
-        target = max_row["word"]
         replacement = f" **{max_row['word']}({max_row['read']})** "
-        return text.replace(target, replacement)
+        result_text = result_text.replace(target_word, replacement)
+    return result_text.strip()
 
 def main():
     # データ読み込み
@@ -125,13 +128,14 @@ def main():
 
     # UI
     st.title("B3 研究室見学")
-    st.space()
 
+    st.space()
     st.write("文章を入力すると、BERTを用いて分野と省略語の読みを推定します")
     st.write("推定できる省略語")
     st.write("・FF（ファイナルファンタジー/前輪駆動）")
     st.write("・HP（ホームページ/ヒットポイント）")
 
+    st.space()
     text_option = st.selectbox(
         "例文",
         ["未選択",
