@@ -1,11 +1,12 @@
 import streamlit as st
-import json
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from huggingface_hub import hf_hub_download
 import torch
 import pandas as pd
 import plotly.express as px
 import torch.nn.functional as F
+import re
+import numpy as np
 
 
 # ---ログ非表示用---
@@ -18,6 +19,8 @@ MODEL_NAME = "yuseyuse14/bert-japanese-genre-classifier"
 
 
 # ---変数（保持）---
+if "text" not in st.session_state:
+    st.session_state.text = ""
 if "probs" not in st.session_state:
     st.session_state.probs = None
 
@@ -31,9 +34,8 @@ def load_data(dir):
         filename="abbreviation.json",
         token=st.secrets["HF_TOKEN"]
     )
-    with open(file_path, "r", encoding="utf-8") as f:
-        abbr_list = json.load(f)
-    return abbr_list
+    abbr_df = pd.read_json(file_path)
+    return abbr_df
 
 @st.cache_resource
 def load_model(dir):
@@ -87,6 +89,35 @@ def temp_soft(x, temp=1.0):
     x = torch.tensor(x)
     return F.softmax(x / temp, dim=0).numpy()
 
+def word_in_text(word, text):
+    # 単語そのものが含まれるとき(PHPとかは反応しない、分かち書きは重い、、)
+    pattern = rf"(?<![a-zA-Z]){re.escape(word)}(?![a-zA-Z])"
+    return bool(re.search(pattern, text))
+
+def js_divergence(P, Q, eps=1e-12):
+    P = np.asarray(P, dtype=np.float64)
+    Q = np.asarray(Q, dtype=np.float64)
+    M = 0.5 * (P + Q)
+
+    kl_pm = np.sum(P * np.log((P + eps) / (M + eps)))
+    kl_qm = np.sum(Q * np.log((Q + eps) / (M + eps)))
+    return 0.5 * (kl_pm + kl_qm)
+
+def read_estimate(text, probs, abbr):
+    filtered = abbr[abbr["word"].apply(lambda x: word_in_text(x, text))]
+    if filtered.empty:
+        return text
+    else:
+        scores = list()
+        for _, row in filtered.iterrows():
+            js = js_divergence(temp_soft(probs, 2.5), np.array(temp_soft(row["score"], 0.25)))
+            scores.append(-js)
+        filtered["js"] = scores
+        max_row = filtered.loc[filtered["js"].idxmax()]
+        target = max_row["word"]
+        replacement = f"{max_row['word']}({max_row['read']})"
+        return text.replace(target, replacement)
+
 def main():
     # データ読み込み
     abbr = load_data(dir=MODEL_NAME)
@@ -116,14 +147,19 @@ def main():
         if text_option == "未選択":
             if text_input.strip() == "":
                 st.warning("文章を入力してください")
+                return
             else:
-                st.session_state.probs = genre_predict(text_input, tokenizer=tokenizer, model=model)
+                st.session_state.text = text_input
         else:
-            st.session_state.probs = genre_predict(text_option, tokenizer=tokenizer, model=model)
+            st.session_state.text = text_option
+        st.session_state.probs = genre_predict(st.session_state.text, tokenizer=tokenizer, model=model)
 
     if st.session_state.probs is not None:
         st.space()
         st.subheader("結果")
+        st.write(read_estimate(st.session_state.text, probs=st.session_state.probs, abbr=abbr))
+
+        st.space()
         sort_option = st.selectbox(
             "並び替え",
             ["デフォルト",
