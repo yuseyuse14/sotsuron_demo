@@ -136,7 +136,7 @@ def main():
     st.write("・HP（ホームページ/ヒットポイント）")
 
     st.space()
-    text_option = st.selectbox(
+    text_option = st.radio(
         "例文",
         ["未選択",
         "FFシリーズの中だと、どの作品が一番好き？",
