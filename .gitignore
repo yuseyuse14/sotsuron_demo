@@ -16,6 +16,9 @@ model/
 # VSCode
 .vscode/
 
+# Streamlit
+.streamlit/
+
 # OS依存
 .DS_Store
 Thumbs.db
