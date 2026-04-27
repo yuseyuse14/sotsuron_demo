@@ -63,9 +63,9 @@ def make_df(probs, sort, labels):
     df = df.round(2)
 
     if sort == "確率が高い順に並び替え":
-        df = df.sort_values(by="確率", axis=1, ascending=False)
+        df = df.sort_values(by="確率(%)", axis=1, ascending=False)
     elif sort == "確率が低い順に並び替え":
-        df = df.sort_values(by="確率", axis=1, ascending=True)
+        df = df.sort_values(by="確率(%)", axis=1, ascending=True)
     return df
 
 def bar_graph(df):
