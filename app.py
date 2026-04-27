@@ -72,14 +72,33 @@ def make_df(probs, sort, labels):
 
 def bar_graph(df):
     df_t = df.T
+    max_prob = df.values.max()
     fig = px.bar(
         df_t,
         x="確率(%)",
         y=df_t.index,
         orientation="h"
     )
+    x_config = dict(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='Gray',
+        dtick=10,
+        minor = dict(
+            dtick=5,
+            showgrid=True,
+            gridwidth=0.5,
+            gridcolor='LightGray',
+            griddash='dot'
+        )
+    )
+    if max_prob <= 20:
+        x_config["dtick"] = 5
+        x_config["minor"]["dtick"] = 1
+    fig.update_xaxes(**x_config)
     fig.update_layout(
         height=800,
+        yaxis_title=None,
         yaxis=dict(tickfont=dict(size=10))
     )
     fig.update_yaxes(autorange="reversed")
@@ -89,11 +108,6 @@ def temp_soft(x, temp=1.0):
     x = torch.tensor(x)
     return F.softmax(x / temp, dim=0).numpy()
 
-def word_in_text(word, text):
-    # 単語そのものが含まれるとき(PHPとかは反応しない、分かち書きは重い、、)
-    pattern = rf"(?<![a-zA-Z]){re.escape(word)}(?![a-zA-Z])"
-    return bool(re.search(pattern, text))
-
 def js_divergence(P, Q, eps=1e-12):
     P = np.asarray(P, dtype=np.float64)
     Q = np.asarray(Q, dtype=np.float64)
@@ -102,6 +116,11 @@ def js_divergence(P, Q, eps=1e-12):
     kl_pm = np.sum(P * np.log((P + eps) / (M + eps)))
     kl_qm = np.sum(Q * np.log((Q + eps) / (M + eps)))
     return 0.5 * (kl_pm + kl_qm)
+
+def word_in_text(word, text):
+    # 単語そのものが含まれるとき(PHPとかは反応しない、分かち書きは重い、、)
+    pattern = rf"(?<![a-zA-Z]){re.escape(word)}(?![a-zA-Z])"
+    return bool(re.search(pattern, text))
 
 def read_estimate(text, probs, abbr):
     words_in_text = [word for word in abbr["word"].unique() if word_in_text(word, text)]
