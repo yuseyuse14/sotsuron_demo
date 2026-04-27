@@ -29,7 +29,7 @@ def load_data(dir):
     file_path = hf_hub_download(
         repo_id=dir,
         filename="abbreviation.json",
-        token=True
+        token=st.secrets["HF_TOKEN"]
     )
     with open(file_path, "r", encoding="utf-8") as f:
         abbr_list = json.load(f)
