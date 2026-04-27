@@ -115,7 +115,7 @@ def read_estimate(text, probs, abbr):
         filtered["js"] = scores
         max_row = filtered.loc[filtered["js"].idxmax()]
         target = max_row["word"]
-        replacement = f"{max_row['word']}({max_row['read']})"
+        replacement = f" **{max_row['word']}({max_row['read']})** "
         return text.replace(target, replacement)
 
 def main():
@@ -157,7 +157,7 @@ def main():
     if st.session_state.probs is not None:
         st.space()
         st.subheader("結果")
-        st.write(read_estimate(st.session_state.text, probs=st.session_state.probs, abbr=abbr))
+        st.markdown(read_estimate(st.session_state.text, probs=st.session_state.probs, abbr=abbr))
 
         st.space()
         sort_option = st.selectbox(
