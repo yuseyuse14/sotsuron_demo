@@ -13,6 +13,9 @@ venv/
 # モデル
 model/
 
+# 生成ファイル
+outputs/
+
 # VSCode
 .vscode/
 
